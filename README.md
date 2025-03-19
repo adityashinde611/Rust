@@ -1,5 +1,3 @@
-# Getting Started with Rust 🚀
-
 ## What is Rust?
 Rust is a **systems programming language** focused on:
 ✅ **Memory safety** without garbage collection  
@@ -212,4 +210,3 @@ fn main() {
 
 ---
 
-This covers **Rust fundamentals** with theory & examples. Let me know if you need more details! 🚀
