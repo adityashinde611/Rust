@@ -126,87 +126,305 @@ fn main() {
 ```
 
 ---
+# **Functions & Ownership in Rust**
 
-# Functions & Ownership
+Rust functions are a core part of the language, supporting **ownership, borrowing, and references**. They help organize code efficiently while maintaining Rust’s **memory safety guarantees**.
 
-## Functions in Rust
+---
+
+## **Function Definitions (`fn`)**
+
+### **Basic Function Syntax**
+A function in Rust is defined using the `fn` keyword.
+
 ```rust
-fn add(a: i32, b: i32) -> i32 {
-    a + b  // Implicit return
+fn greet() {
+    println!("Hello, Rust!");
 }
+
 fn main() {
-    let sum = add(4, 5);
-    println!("Sum: {}", sum);
+    greet();  // Calling the function
 }
 ```
 
-## Ownership & Borrowing
-Rust enforces **ownership** to manage memory.
-```rust
-fn main() {
-    let s = String::from("hello");
-    takes_ownership(s);
-    // println!("{}", s); // ERROR: s was moved
+💡 **Key Points:**
+- The function name follows **snake_case**.
+- Function blocks are enclosed in `{}`.
+- `()` is mandatory even if there are no parameters.
 
-    let x = 5;
-    makes_copy(x);
-    println!("x is still usable: {}", x);
+---
+
+### **Function with Parameters**
+```rust
+fn add(a: i32, b: i32) {
+    println!("Sum: {}", a + b);
 }
-fn takes_ownership(some_string: String) {
-    println!("{}", some_string);
-}
-fn makes_copy(some_integer: i32) {
-    println!("{}", some_integer);
+
+fn main() {
+    add(5, 10);  // Output: Sum: 15
 }
 ```
 
-To prevent moving, use **references (`&`)**.
+💡 **Key Points:**
+- Parameters are **type-specified** (`a: i32, b: i32`).
+- Rust enforces **strict type checking**.
+
+---
+
+### **Return Types (`->`)**
+Functions can return values using `->` followed by the return type.
+
 ```rust
-fn main() {
-    let s = String::from("hello");
-    print_string(&s);
-    println!("s is still usable: {}", s);
+fn square(x: i32) -> i32 {
+    x * x  // Implicit return (no `;`)
 }
-fn print_string(s: &String) {
-    println!("{}", s);
+
+fn main() {
+    let result = square(4);
+    println!("Square: {}", result);  // Output: Square: 16
+}
+```
+
+💡 **Key Points:**
+- The last expression in a function is **implicitly returned**.
+- `return` keyword is optional unless an early return is needed.
+
+---
+
+### **Explicit Return Using `return`**
+```rust
+fn divide(a: i32, b: i32) -> f64 {
+    if b == 0 {
+        return 0.0;  // Early return
+    }
+    a as f64 / b as f64
 }
 ```
 
 ---
 
-# Structs & Enums
+# **Ownership, Borrowing, and References**
+Rust **ensures memory safety** by enforcing **ownership rules** at compile-time.
 
-## Structs
+## **Ownership**
+**Rules of Ownership:**
+1. Each value in Rust has a single **owner**.
+2. When the owner **goes out of scope**, the value is **dropped**.
+3. Values **move** instead of being copied by default.
+
+### **Move Semantics**
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1;  // s1 is MOVED to s2
+
+    println!("{}", s2);  // ✅ Works
+    // println!("{}", s1);  // ❌ ERROR: s1 is no longer valid
+}
+```
+💡 **Explanation:**  
+- `s1` **transfers ownership** to `s2`, so `s1` becomes **invalid**.
+
+---
+
+### **Clone to Keep Ownership**
+To create a deep copy, use `.clone()`.
+```rust
+fn main() {
+    let s1 = String::from("hello");
+    let s2 = s1.clone();  // Deep copy
+
+    println!("{}", s1);  // ✅ Works
+    println!("{}", s2);
+}
+```
+
+---
+
+## **Borrowing (`&`)**
+Borrowing allows multiple references **without transferring ownership**.
+
+### **Immutable Borrowing**
+```rust
+fn print_length(s: &String) {
+    println!("Length: {}", s.len());
+}
+
+fn main() {
+    let my_string = String::from("Rust");
+    print_length(&my_string);  // Borrowing
+    println!("{}", my_string);  // ✅ Owner still valid
+}
+```
+💡 **Rules of Borrowing:**
+- **Immutable references (`&T`) allow multiple borrows.**
+- Borrowed values **cannot be modified**.
+
+---
+
+### **Mutable Borrowing (`&mut`)**
+Allows modification but only **one mutable reference at a time**.
+```rust
+fn add_exclamation(s: &mut String) {
+    s.push_str("!");
+}
+
+fn main() {
+    let mut my_string = String::from("Hello");
+    add_exclamation(&mut my_string);
+    println!("{}", my_string);  // Output: Hello!
+}
+```
+💡 **Rules of Mutable Borrowing:**
+- Only **one mutable reference** per variable.
+- Prevents **data races**.
+
+---
+
+## **Stack vs. Heap Memory**
+Rust manages memory using **stack and heap** efficiently.
+
+| Stack | Heap |
+|--------|------|
+| Stores small, fixed-size data | Stores dynamically sized data |
+| Fast access (LIFO) | Slower access |
+| Function calls, primitives, references | Strings, Vectors, large objects |
+| Automatically freed on function exit | Requires explicit management (`drop`) |
+
+```rust
+fn main() {
+    let x = 10;  // Stored on Stack
+    let s = String::from("hello");  // Stored on Heap
+}
+```
+💡 **Rust automatically frees heap memory** when an owner goes out of scope.
+
+---
+
+# **Structs & Enums in Rust**
+## **Structs**
+A `struct` is a **custom data type** that groups related fields together.
+
+### **Defining and Using Structs**
 ```rust
 struct Person {
     name: String,
     age: u32,
 }
+
 fn main() {
-    let person = Person {
+    let user = Person {
         name: String::from("Alice"),
-        age: 30,
+        age: 25,
     };
-    println!("Name: {}, Age: {}", person.name, person.age);
+
+    println!("{} is {} years old.", user.name, user.age);
 }
 ```
+💡 **Key Points:**
+- `struct` allows **grouping multiple fields**.
+- Fields are accessed using `.` notation.
 
-## Enums & Pattern Matching
+---
+
+### **Struct Methods (`impl` Blocks)**
+```rust
+struct Rectangle {
+    width: u32,
+    height: u32,
+}
+
+impl Rectangle {
+    fn area(&self) -> u32 {
+        self.width * self.height
+    }
+}
+
+fn main() {
+    let rect = Rectangle { width: 10, height: 5 };
+    println!("Area: {}", rect.area());
+}
+```
+💡 **Key Points:**
+- `&self` allows borrowing (`Rectangle` remains valid).
+- Methods are defined inside **`impl` blocks**.
+
+---
+
+## **Enums**
+An `enum` allows defining **a type with multiple possible variants**.
+
+### **Defining and Using Enums**
 ```rust
 enum Color {
     Red,
     Green,
     Blue,
 }
+
 fn main() {
-    let color = Color::Red;
-    match color {
-        Color::Red => println!("It's Red!"),
-        Color::Green => println!("It's Green!"),
-        Color::Blue => println!("It's Blue!"),
+    let c = Color::Red;
+
+    match c {
+        Color::Red => println!("Red selected!"),
+        Color::Green => println!("Green selected!"),
+        Color::Blue => println!("Blue selected!"),
     }
 }
 ```
+💡 **Key Points:**
+- `enum` represents **one of many possible values**.
+- Works well with `match` for pattern matching.
+
+---
+
+### **Enums with Data**
+Enums can **store values** within variants.
+
+```rust
+enum Message {
+    Text(String),
+    Quit,
+    Move { x: i32, y: i32 },
+}
+
+fn main() {
+    let msg = Message::Text(String::from("Hello"));
+
+    match msg {
+        Message::Text(text) => println!("Message: {}", text),
+        Message::Quit => println!("Quitting..."),
+        Message::Move { x, y } => println!("Moving to {}, {}", x, y),
+    }
+}
+```
+💡 **Use Cases:**
+- `Quit`: No data needed.
+- `Text(String)`: Stores a **String**.
+- `Move { x, y }`: Stores **multiple values**.
+
+---
+
+### **Option Enum (`None`, `Some`)**
+Rust’s `Option<T>` handles **nullable values safely**.
+
+```rust
+fn divide(numerator: i32, denominator: i32) -> Option<f64> {
+    if denominator == 0 {
+        None
+    } else {
+        Some(numerator as f64 / denominator as f64)
+    }
+}
+
+fn main() {
+    match divide(10, 2) {
+        Some(result) => println!("Result: {}", result),
+        None => println!("Cannot divide by zero"),
+    }
+}
+```
+💡 **`Option<T>` prevents null pointer bugs**.
 
 ---
 # **Tuples & Arrays in Rust**  
