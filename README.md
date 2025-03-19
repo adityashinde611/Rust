@@ -2199,3 +2199,257 @@ fn main() -> ! {
 - `embedded-hal` → Provides **common hardware abstractions**.  
 
 ---
+# **Building CLI & Web Apps, Performance Tuning, and Functional Programming in Rust**
+
+## **1️⃣ Building CLI Applications in Rust**
+Command-Line Interface (CLI) applications are a major use case for Rust due to its **performance, safety, and cross-platform capabilities**.
+
+### **1.1 Using `clap` for Argument Parsing**
+The **`clap` (Command Line Argument Parser)** crate simplifies CLI argument handling.
+
+#### **Basic CLI App using `clap`**
+```rust
+use clap::{Arg, Command};
+
+fn main() {
+    let matches = Command::new("cli-app")
+        .version("1.0")
+        .author("Your Name")
+        .about("A simple CLI app")
+        .arg(Arg::new("name")
+            .short('n')
+            .long("name")
+            .value_name("NAME")
+            .help("Sets a name")
+            .required(true)
+            .takes_value(true))
+        .get_matches();
+
+    let name = matches.value_of("name").unwrap();
+    println!("Hello, {}!", name);
+}
+```
+💡 **Key Takeaways:**
+- `Command::new()` → Defines the CLI app.
+- `.arg()` → Defines command-line arguments.
+- `matches.value_of("name")` → Retrieves user input.
+
+---
+
+### **1.2 Using `structopt` (Declarative Approach)**
+`structopt` is a higher-level wrapper over `clap` that provides a **Rust struct-based approach**.
+
+#### **Example:**
+```rust
+use structopt::StructOpt;
+
+#[derive(StructOpt)]
+struct Cli {
+    #[structopt(short, long)]
+    name: String,
+}
+
+fn main() {
+    let args = Cli::from_args();
+    println!("Hello, {}!", args.name);
+}
+```
+💡 **Key Takeaways:**
+- Uses `derive(StructOpt)` for **auto-parsing arguments**.
+- `Cli::from_args()` → Parses CLI input automatically.
+
+---
+
+## **2️⃣ Web Apps in Rust with WebAssembly**
+Rust can be used for web development via **WebAssembly (WASM)** for high-performance web apps.
+
+### **2.1 WebAssembly in Rust**
+WebAssembly allows Rust to **run in the browser** efficiently.
+
+#### **Setting up WebAssembly**
+1. **Install `wasm-pack`**
+   ```sh
+   cargo install wasm-pack
+   ```
+2. **Add dependencies (`Cargo.toml`)**
+   ```toml
+   [dependencies]
+   wasm-bindgen = "0.2"
+   ```
+3. **Rust Code for WebAssembly**
+   ```rust
+   use wasm_bindgen::prelude::*;
+
+   #[wasm_bindgen]
+   pub fn greet(name: &str) -> String {
+       format!("Hello, {}!", name)
+   }
+   ```
+4. **Compile to WASM**
+   ```sh
+   wasm-pack build --target web
+   ```
+
+💡 **Key Takeaways:**
+- `wasm-pack` → **Builds Rust into WASM**.
+- `wasm_bindgen` → Enables **Rust-JavaScript communication**.
+
+---
+
+### **2.2 Full-Stack Rust with Yew**
+[Yew](https://yew.rs/) is a **Rust framework similar to React**.
+
+#### **Example Yew Component**
+```rust
+use yew::prelude::*;
+
+#[function_component(App)]
+fn app() -> Html {
+    html! {
+        <div>
+            <h1>{ "Hello from Rust & Yew!" }</h1>
+        </div>
+    }
+}
+```
+💡 **Key Takeaways:**
+- **Similar to React**, but uses Rust instead of JavaScript.
+- **Strong type safety** and **high performance**.
+
+---
+
+## **3️⃣ Performance Tuning & Optimization**
+Rust provides tools for **profiling, benchmarking, and optimizing memory use**.
+
+### **3.1 Profiling with `perf` & Flamegraph**
+To analyze performance, use **`perf` (Linux)** and **Flamegraph**.
+
+1. **Install Flamegraph**
+   ```sh
+   cargo install flamegraph
+   ```
+2. **Run Profiling**
+   ```sh
+   cargo flamegraph
+   ```
+3. **Analyze the Flamegraph** (Shows slowest functions)
+
+💡 **Key Takeaways:**
+- `perf` **analyzes CPU performance**.
+- **Flamegraph visualizes bottlenecks**.
+
+---
+
+### **3.2 Benchmarking with `criterion.rs`**
+`criterion.rs` helps measure **function execution time**.
+
+#### **Example Benchmark**
+```rust
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+
+fn fibonacci(n: u64) -> u64 {
+    if n <= 1 { n } else { fibonacci(n-1) + fibonacci(n-2) }
+}
+
+fn benchmark(c: &mut Criterion) {
+    c.bench_function("fibonacci 20", |b| b.iter(|| fibonacci(black_box(20))));
+}
+
+criterion_group!(benches, benchmark);
+criterion_main!(benches);
+```
+💡 **Key Takeaways:**
+- `criterion.rs` → **Accurate Rust benchmarking**.
+- `black_box()` → Prevents compiler optimizations.
+
+---
+
+### **3.3 Cache-efficient Data Structures**
+Optimizing memory **layout** improves performance.
+
+#### **Example: Struct-of-Arrays (SoA) vs. Array-of-Structs (AoS)**
+```rust
+struct Position { x: f64, y: f64, z: f64 }
+struct Velocity { x: f64, y: f64, z: f64 }
+
+struct ParticleSoA {
+    positions: Vec<Position>,
+    velocities: Vec<Velocity>,
+}
+```
+💡 **Key Takeaways:**
+- **SoA (Struct of Arrays)** improves **cache locality**.
+- **AoS (Array of Structs)** may cause **cache misses**.
+
+---
+
+## **4️⃣ Functional Programming in Rust**
+Rust supports **functional programming** with closures, monads, and algebraic data types.
+
+### **4.1 Closures & Higher-Order Functions**
+Closures allow **inline function definitions**.
+
+#### **Example Closure**
+```rust
+fn apply<F>(func: F, x: i32) -> i32
+where
+    F: Fn(i32) -> i32,
+{
+    func(x)
+}
+
+fn main() {
+    let double = |x| x * 2;
+    println!("{}", apply(double, 5)); // Output: 10
+}
+```
+💡 **Key Takeaways:**
+- `|x| x * 2` → Defines a **closure**.
+- `apply(double, 5)` → Uses **higher-order functions**.
+
+---
+
+### **4.2 Algebraic Data Types (ADTs)**
+ADTs enable **strong type safety**.
+
+#### **Example: Sum & Product Types**
+```rust
+enum Shape {
+    Circle(f64),
+    Rectangle(f64, f64),
+}
+
+fn area(shape: Shape) -> f64 {
+    match shape {
+        Shape::Circle(radius) => 3.14 * radius * radius,
+        Shape::Rectangle(w, h) => w * h,
+    }
+}
+```
+💡 **Key Takeaways:**
+- `enum` defines **sum types** (multiple variants).
+- `match` enables **pattern matching**.
+
+---
+
+### **4.3 Monads & Composability**
+Rust uses `Option<T>` and `Result<T, E>` as **monads**.
+
+#### **Example: Using `map()` for Composability**
+```rust
+fn square(x: Option<i32>) -> Option<i32> {
+    x.map(|num| num * num)
+}
+
+fn main() {
+    let num = Some(4);
+    println!("{:?}", square(num)); // Output: Some(16)
+}
+```
+💡 **Key Takeaways:**
+- `Option<T>::map()` **chains operations safely**.
+- **Avoids explicit `if-else` null checks**.
+
+---
+
+
