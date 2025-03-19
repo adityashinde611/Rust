@@ -1783,3 +1783,189 @@ fn main() {
 
 ---
 
+# **Advanced Rust: Macros, Metaprogramming & Unsafe Rust**
+
+Rust is known for its **memory safety, performance, and concurrency**. However, for **metaprogramming and low-level programming**, Rust provides powerful features like **macros, unsafe code, and FFI**.
+
+---
+
+# **1️⃣ Macros & Metaprogramming**  
+Rust macros allow **code generation at compile-time**, reducing **boilerplate code**.
+
+## **1.1 Declarative Macros (`macro_rules!`)**  
+Declarative macros use **pattern matching** to generate code.
+
+### **Example: Custom `vec!` Macro**
+```rust
+macro_rules! my_vec {
+    ($($x:expr),*) => {
+        {
+            let mut temp_vec = Vec::new();
+            $(temp_vec.push($x);)*
+            temp_vec
+        }
+    };
+}
+
+fn main() {
+    let v = my_vec![1, 2, 3, 4];
+    println!("{:?}", v);
+}
+```
+💡 **How It Works:**  
+- `$($x:expr),*` → Matches multiple expressions.  
+- `$(temp_vec.push($x);)*` → Expands for each element.
+
+---
+
+## **1.2 Procedural Macros (`#[derive]`)**  
+Procedural macros allow **custom derive implementations**.
+
+### **Example: Creating a Custom Derive Macro**
+```rust
+use proc_macro::TokenStream;
+
+#[proc_macro_derive(MyTrait)]
+pub fn my_macro_derive(_input: TokenStream) -> TokenStream {
+    // Normally, we'd generate Rust code here
+    "fn generated_function() { println!(\"Hello from macro!\"); }".parse().unwrap()
+}
+```
+💡 **Key Takeaways:**  
+- **Procedural macros manipulate AST (Abstract Syntax Tree).**  
+- Requires `proc_macro` crate.  
+
+---
+
+## **1.3 Attribute Macros (`#[cfg], #[test], #[inline]`)**  
+Attribute macros modify **code behavior**.
+
+### **Example: Conditional Compilation (`#[cfg]`)**
+```rust
+#[cfg(target_os = "windows")]
+fn platform_specific() {
+    println!("Running on Windows!");
+}
+
+#[cfg(target_os = "linux")]
+fn platform_specific() {
+    println!("Running on Linux!");
+}
+
+fn main() {
+    platform_specific();
+}
+```
+💡 **Key Takeaways:**  
+- `#[cfg(target_os = "windows")]` **compiles code only on Windows**.  
+- Used for **cross-platform development**.  
+
+---
+
+# **2️⃣ Unsafe Rust & Low-Level Programming**  
+Rust enforces **memory safety**, but in some cases, you need **manual control** over memory.
+
+## **2.1 The `unsafe` Keyword**  
+Unsafe Rust allows:  
+✅ Dereferencing raw pointers.  
+✅ Calling **unsafe functions**.  
+✅ Accessing or modifying **static mutable variables**.  
+✅ Implementing **unsafe traits**.
+
+### **Example: Dereferencing Raw Pointers**
+```rust
+fn main() {
+    let x: i32 = 10;
+    let r1 = &x as *const i32;
+    let r2 = &x as *mut i32; // Mutable raw pointer
+
+    unsafe {
+        println!("r1 points to: {}", *r1);
+        println!("r2 points to: {}", *r2);
+    }
+}
+```
+💡 **Key Takeaways:**  
+- `*const T` → Immutable raw pointer.  
+- `*mut T` → Mutable raw pointer.  
+- Must **use `unsafe` to dereference** raw pointers.  
+
+---
+
+## **2.2 Manual Memory Allocation (`alloc::alloc`)**  
+Rust allows **manual memory management** using `alloc::alloc`.
+
+### **Example: Manually Allocating Memory**
+```rust
+use std::alloc::{alloc, dealloc, Layout};
+
+fn main() {
+    let layout = Layout::new::<u32>();
+    let ptr = unsafe { alloc(layout) as *mut u32 };
+
+    if ptr.is_null() {
+        panic!("Memory allocation failed");
+    }
+
+    unsafe {
+        *ptr = 42;
+        println!("Allocated value: {}", *ptr);
+        dealloc(ptr as *mut u8, layout);
+    }
+}
+```
+💡 **Key Takeaways:**  
+- `alloc()` **allocates memory**.
+- `dealloc()` **frees allocated memory**.
+- **Rust’s `Box<T>` is safer than manual allocation.**  
+
+---
+
+## **2.3 Foreign Function Interface (FFI) - Calling C Code**  
+Rust can call **C functions** using `extern "C"`.
+
+### **Example: Calling a C Function**
+```c
+// C Code (save as lib.c)
+#include <stdio.h>
+
+void hello_from_c() {
+    printf("Hello from C!\n");
+}
+```
+```rust
+// Rust Code
+extern "C" {
+    fn hello_from_c();
+}
+
+fn main() {
+    unsafe { hello_from_c(); }
+}
+```
+💡 **Key Takeaways:**  
+- `extern "C"` tells Rust that **functions are from C**.  
+- **Use `unsafe` to call FFI functions**.  
+
+---
+
+## **2.4 Inline Assembly (`asm!`)**  
+Rust supports **inline assembly** for low-level operations.
+
+### **Example: Inline Assembly (x86)**
+```rust
+#![feature(asm)] // Only required in nightly builds
+
+fn main() {
+    let mut x: i32 = 5;
+    unsafe {
+        asm!("add {0}, 10", inout(reg) x);
+    }
+    println!("Value after assembly: {}", x);
+}
+```
+💡 **Key Takeaways:**  
+- **`asm!()` inserts assembly instructions**.  
+- Used for **performance-critical** tasks.  
+
+---
