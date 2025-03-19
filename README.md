@@ -945,4 +945,291 @@ fn main() {
 - `Self::Item` allows **type inference**.
 
 ---
+# **Rust Collections, Iterators, and Error Handling (Deep Dive)**  
+
+Rust provides powerful **collections, iterators, and error handling mechanisms** that enable safe and efficient programming. Let's break them down **conceptually and practically** with deep insights.
+
+---
+
+# **1. Collections & Iterators**  
+
+Rust has three primary **collection types**:  
+- `Vec<T>` → Dynamic, resizable arrays.  
+- `HashMap<K, V>` → Key-value storage, similar to dictionaries.  
+- `HashSet<T>` → Unique, unordered collection of values.  
+
+These collections work **efficiently** with **iterators**, which allow **lazy evaluation and functional-style transformations**.
+
+---
+
+## **1.1 Vec<T>: The Growable Array**  
+
+A `Vec<T>` is a dynamically allocated array that grows automatically when needed. Unlike arrays (`[T; N]`), a `Vec<T>` can change its size at runtime.
+
+### **Creating and Modifying a Vec**
+```rust
+fn main() {
+    let mut numbers: Vec<i32> = vec![1, 2, 3];
+
+    numbers.push(4); // Add element
+    numbers.remove(1); // Remove second element
+
+    println!("{:?}", numbers); // Output: [1, 3, 4]
+}
+```
+💡 **Key Takeaways:**  
+- `vec![]` is a macro that creates a `Vec<T>`.  
+- `push()` adds elements, and `remove(index)` removes them.  
+- **Indexing (`numbers[0]`) can panic if out of bounds!**  
+
+---
+
+### **Iterating Over a Vec**
+```rust
+fn main() {
+    let numbers = vec![10, 20, 30];
+
+    // Immutable reference iteration
+    for num in &numbers {
+        println!("{}", num);
+    }
+
+    // Mutable iteration
+    let mut numbers = vec![1, 2, 3];
+    for num in &mut numbers {
+        *num *= 2;
+    }
+    println!("{:?}", numbers); // Output: [2, 4, 6]
+}
+```
+💡 **Key Takeaways:**  
+- `&numbers` → Iterates immutably.  
+- `&mut numbers` → Iterates mutably, modifying elements in place.  
+
+---
+
+## **1.2 HashMap<K, V>: Key-Value Storage**  
+
+A `HashMap<K, V>` stores data as key-value pairs, allowing fast lookups.  
+
+### **Creating and Using a HashMap**
+```rust
+use std::collections::HashMap;
+
+fn main() {
+    let mut scores = HashMap::new();
+    scores.insert("Alice", 90);
+    scores.insert("Bob", 85);
+
+    if let Some(score) = scores.get("Alice") {
+        println!("Alice's score: {}", score);
+    }
+
+    scores.entry("Charlie").or_insert(75); // Insert if missing
+    println!("{:?}", scores);
+}
+```
+💡 **Key Takeaways:**  
+- `insert(key, value)` adds elements.  
+- `get(&key)` returns an `Option<&V>`.  
+- `entry().or_insert(value)` inserts only if the key **does not exist**.  
+
+---
+
+## **1.3 HashSet<T>: Unordered Unique Collection**  
+
+A `HashSet<T>` stores only **unique elements** and is optimized for **fast lookups**.
+
+```rust
+use std::collections::HashSet;
+
+fn main() {
+    let mut set = HashSet::new();
+    set.insert(10);
+    set.insert(20);
+    set.insert(10); // Duplicate is ignored
+
+    println!("{:?}", set.contains(&10)); // true
+    println!("{:?}", set); // Output: {10, 20}
+}
+```
+💡 **Key Takeaways:**  
+- **No duplicate values.**  
+- **Lookup time is O(1)** (on average).  
+
+---
+
+## **1.4 Option<T> and Result<T, E> for Safer Handling**  
+
+Rust doesn’t use `null`. Instead, it provides **`Option<T>`** and **`Result<T, E>`** for safer handling.
+
+### **Option<T>: Handling Absence of a Value**
+```rust
+fn find_square(n: Option<i32>) -> Option<i32> {
+    n.map(|num| num * num)
+}
+
+fn main() {
+    let number = Some(5);
+    let result = find_square(number);
+    println!("{:?}", result); // Some(25)
+
+    let none_value: Option<i32> = None;
+    println!("{:?}", find_square(none_value)); // None
+}
+```
+💡 **Key Takeaways:**  
+- `Option<T>` is either `Some(value)` or `None`.  
+- `map()` applies a function **only if Some(value) exists**.  
+
+---
+
+### **Result<T, E>: Handling Errors Properly**
+```rust
+fn divide(a: i32, b: i32) -> Result<i32, String> {
+    if b == 0 {
+        Err("Cannot divide by zero!".to_string())
+    } else {
+        Ok(a / b)
+    }
+}
+
+fn main() {
+    match divide(10, 2) {
+        Ok(result) => println!("Result: {}", result),
+        Err(error) => println!("Error: {}", error),
+    }
+}
+```
+💡 **Key Takeaways:**  
+- `Result<T, E>` is either `Ok(value)` (success) or `Err(error)` (failure).  
+- `match` is used to handle errors explicitly.  
+
+---
+
+# **2. Iterators & Custom Iterators**  
+
+Rust’s **iterators** enable **lazy evaluation** and functional-style operations.
+
+### **iter(), into_iter(), iter_mut()**
+```rust
+fn main() {
+    let numbers = vec![1, 2, 3];
+
+    // Immutable iteration
+    for n in numbers.iter() {
+        println!("{}", n);
+    }
+
+    // Consuming iteration (takes ownership)
+    for n in numbers.into_iter() {
+        println!("{}", n);
+    }
+
+    // Mutable iteration
+    let mut numbers = vec![1, 2, 3];
+    for n in numbers.iter_mut() {
+        *n *= 2;
+    }
+    println!("{:?}", numbers); // Output: [2, 4, 6]
+}
+```
+💡 **Key Takeaways:**  
+- `iter()` → Immutable references (`&T`).  
+- `into_iter()` → Consumes the collection (`T`).  
+- `iter_mut()` → Mutable references (`&mut T`).  
+
+---
+
+## **Custom Iterators Using `impl Iterator`**
+```rust
+struct Counter {
+    count: i32,
+}
+
+impl Counter {
+    fn new() -> Counter {
+        Counter { count: 0 }
+    }
+}
+
+impl Iterator for Counter {
+    type Item = i32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.count < 5 {
+            self.count += 1;
+            Some(self.count)
+        } else {
+            None
+        }
+    }
+}
+
+fn main() {
+    let mut counter = Counter::new();
+    while let Some(num) = counter.next() {
+        println!("{}", num);
+    }
+}
+```
+💡 **Key Takeaways:**  
+- Implement the `Iterator` trait for custom iterators.  
+- **`next()` defines how elements are retrieved lazily.**  
+
+---
+
+# **3. Error Handling in Rust**  
+
+Rust provides **panic-free, predictable error handling**.
+
+## **3.1 panic!(), unwrap(), expect()**
+```rust
+fn main() {
+    // panic! Example
+    // panic!("Something went wrong!"); // This will crash the program
+
+    let value: Option<i32> = None;
+    // println!("{}", value.unwrap()); // ❌ Panics if None
+
+    println!("{}", value.unwrap_or(0)); // ✅ Default value
+}
+```
+💡 **Avoid `unwrap()` unless you are sure the value exists!**  
+
+---
+
+## **3.2 Propagating Errors Using `?` Operator**
+```rust
+fn read_number() -> Result<i32, std::num::ParseIntError> {
+    let number = "42".parse::<i32>()?; // Propagates error if parsing fails
+    Ok(number)
+}
+```
+💡 **`?` automatically propagates errors instead of using `match`.**  
+
+---
+
+## **3.3 Custom Error Types**
+```rust
+use std::fmt;
+
+#[derive(Debug)]
+struct MyError;
+
+impl fmt::Display for MyError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Custom error occurred")
+    }
+}
+
+fn main() {
+    let result: Result<i32, MyError> = Err(MyError);
+    println!("{:?}", result);
+}
+```
+💡 **Implementing `Display` makes custom errors user-friendly.**  
+
+---
+
 
