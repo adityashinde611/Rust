@@ -1969,3 +1969,233 @@ fn main() {
 - Used for **performance-critical** tasks.  
 
 ---
+
+# **Networking & WebSockets in Rust**  
+
+Rust provides robust networking capabilities using `std::net` for **TCP/UDP sockets**, and libraries like **tokio-tungstenite, warp, and hyper** for **WebSockets and HTTP APIs**.
+
+---
+
+## **1️⃣ TCP & UDP Sockets (`std::net`)**  
+
+Rust provides standard networking primitives using the **`std::net`** module for **TCP and UDP sockets**.
+
+### **1.1 TCP (Transmission Control Protocol)**
+TCP provides **reliable, ordered, and error-checked communication**.
+
+#### **Creating a TCP Server**
+```rust
+use std::net::{TcpListener, TcpStream};
+use std::io::{Read, Write};
+use std::thread;
+
+fn handle_client(mut stream: TcpStream) {
+    let mut buffer = [0; 1024];
+    match stream.read(&mut buffer) {
+        Ok(size) => {
+            println!("Received: {}", String::from_utf8_lossy(&buffer[..size]));
+            stream.write_all(b"Hello from server!").unwrap();
+        }
+        Err(e) => println!("Failed to read from socket: {}", e),
+    }
+}
+
+fn main() {
+    let listener = TcpListener::bind("127.0.0.1:8080").unwrap();
+    println!("Server listening on port 8080...");
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                thread::spawn(|| handle_client(stream)); // Handle each client in a new thread
+            }
+            Err(e) => println!("Connection failed: {}", e),
+        }
+    }
+}
+```
+
+#### **Creating a TCP Client**
+```rust
+use std::net::TcpStream;
+use std::io::{Read, Write};
+
+fn main() {
+    let mut stream = TcpStream::connect("127.0.0.1:8080").unwrap();
+    stream.write_all(b"Hello from client!").unwrap();
+
+    let mut buffer = [0; 1024];
+    let size = stream.read(&mut buffer).unwrap();
+    println!("Received from server: {}", String::from_utf8_lossy(&buffer[..size]));
+}
+```
+💡 **Key Takeaways:**  
+- `TcpListener::bind("127.0.0.1:8080")` → Starts a **TCP server**.  
+- `stream.read()` → Reads incoming **data from clients**.  
+- `stream.write_all()` → Sends **data to clients**.  
+
+---
+
+### **1.2 UDP (User Datagram Protocol)**
+UDP provides **fast but unreliable data transmission** (no connection establishment).
+
+#### **Creating a UDP Server**
+```rust
+use std::net::UdpSocket;
+
+fn main() {
+    let socket = UdpSocket::bind("127.0.0.1:8080").unwrap();
+    let mut buf = [0; 1024];
+
+    loop {
+        let (size, src) = socket.recv_from(&mut buf).unwrap();
+        println!("Received '{}' from {}", String::from_utf8_lossy(&buf[..size]), src);
+        socket.send_to(b"Hello from server!", src).unwrap();
+    }
+}
+```
+
+#### **Creating a UDP Client**
+```rust
+use std::net::UdpSocket;
+
+fn main() {
+    let socket = UdpSocket::bind("127.0.0.1:0").unwrap(); // Any available port
+    socket.send_to(b"Hello from client!", "127.0.0.1:8080").unwrap();
+
+    let mut buf = [0; 1024];
+    let (size, _) = socket.recv_from(&mut buf).unwrap();
+    println!("Received from server: {}", String::from_utf8_lossy(&buf[..size]));
+}
+```
+💡 **Key Takeaways:**  
+- `UdpSocket::bind()` → Creates a **UDP server**.  
+- `socket.recv_from()` → Receives **datagrams from clients**.  
+- `socket.send_to()` → Sends **datagrams to clients**.  
+
+---
+
+## **2️⃣ WebSockets in Rust (`tokio-tungstenite`)**  
+WebSockets allow **full-duplex communication** over a single TCP connection.
+
+### **Creating a WebSocket Server**
+```rust
+use tokio::net::TcpListener;
+use tokio_tungstenite::accept_async;
+use futures_util::{StreamExt, SinkExt};
+
+#[tokio::main]
+async fn main() {
+    let listener = TcpListener::bind("127.0.0.1:9001").await.unwrap();
+    println!("WebSocket server listening on port 9001");
+
+    while let Ok((stream, _)) = listener.accept().await {
+        tokio::spawn(async move {
+            let ws_stream = accept_async(stream).await.unwrap();
+            let (mut write, mut read) = ws_stream.split();
+
+            while let Some(msg) = read.next().await {
+                let msg = msg.unwrap();
+                println!("Received: {}", msg);
+                write.send(msg).await.unwrap(); // Echo back the message
+            }
+        });
+    }
+}
+```
+
+### **Creating a WebSocket Client**
+```rust
+use tokio_tungstenite::connect_async;
+use tokio::net::TcpStream;
+use url::Url;
+use futures_util::{StreamExt, SinkExt};
+
+#[tokio::main]
+async fn main() {
+    let url = Url::parse("ws://127.0.0.1:9001").unwrap();
+    let (mut ws_stream, _) = connect_async(url).await.unwrap();
+
+    ws_stream.send("Hello, WebSocket!".into()).await.unwrap();
+    if let Some(msg) = ws_stream.next().await {
+        println!("Received: {}", msg.unwrap());
+    }
+}
+```
+💡 **Key Takeaways:**  
+- `tokio_tungstenite::accept_async()` → Accepts WebSocket connections.  
+- `stream.split()` → Splits into **read and write halves**.  
+- `connect_async()` → Creates a **WebSocket client**.  
+
+---
+
+## **3️⃣ REST APIs with `warp` & `actix-web`**  
+Rust is used for **high-performance web APIs**.
+
+### **Creating a Simple REST API with Warp**
+```rust
+use warp::Filter;
+
+#[tokio::main]
+async fn main() {
+    let hello = warp::path!("hello" / String)
+        .map(|name| format!("Hello, {}!", name));
+
+    warp::serve(hello).run(([127, 0, 0, 1], 3030)).await;
+}
+```
+💡 **Key Takeaways:**  
+- `warp::path!()` → Defines API routes.  
+- `warp::serve()` → Starts the HTTP server.  
+
+---
+
+## **4️⃣ Embedded & Systems Programming in Rust (`no_std`)**  
+Rust can be used in **embedded systems** with `no_std`.
+
+### **4.1 `no_std` (No Standard Library)**
+By default, Rust uses **std**, but embedded devices lack an OS.
+
+```rust
+#![no_std]
+#![no_main]
+
+use core::panic::PanicInfo;
+
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    loop {}
+}
+```
+💡 **Key Takeaways:**  
+- `#![no_std]` → Removes standard library.  
+- **Useful for microcontrollers and bare-metal systems.**  
+
+---
+
+### **4.2 Writing Firmware for Microcontrollers (`cortex-m`, `embedded-hal`)**
+Example: Blinking an LED on a **STM32 microcontroller**.
+
+```rust
+use cortex_m_rt::entry;
+use hal::{pac, prelude::*};
+
+#[entry]
+fn main() -> ! {
+    let dp = pac::Peripherals::take().unwrap();
+    let gpioa = dp.GPIOA.split();
+    let mut led = gpioa.pa5.into_push_pull_output();
+
+    loop {
+        led.set_high();
+        delay(1_000_000);
+        led.set_low();
+        delay(1_000_000);
+    }
+}
+```
+💡 **Key Takeaways:**  
+- `cortex-m` → Provides **ARM Cortex-M support**.  
+- `embedded-hal` → Provides **common hardware abstractions**.  
+
+---
